@@ -4,7 +4,7 @@ import Client from "../models/clientModel.js";
 import AuthCode from "../models/authCodeModel.js";
 
 const authorize = asyncHandler(async (req, res) => {
-  const { client_id, redirect_uri, response_type, state } = req.body;
+  const { client_id, redirect_uri, response_type, state } = req.query;
 
   // validate required params
   if (!client_id || !redirect_uri || response_type !== "code") {
