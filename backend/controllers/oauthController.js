@@ -40,7 +40,7 @@ const authorize = asyncHandler(async (req, res) => {
   const authCode = crypto.randomBytes(32).toString("hex");
 
   await AuthCode.create({
-    authCode,
+    code: authCode,
     clientId: client_id,
     userId,
     redirectUri: redirect_uri,
@@ -54,6 +54,7 @@ const authorize = asyncHandler(async (req, res) => {
 });
 
 const token = asyncHandler(async(req, res) => {
+  console.log("BODY:", req.body);
   const {client_id, code, redirect_uri } = req.body;
 
   // validate required params
