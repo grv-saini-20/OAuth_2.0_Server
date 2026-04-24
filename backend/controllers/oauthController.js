@@ -49,11 +49,16 @@ const authorize = asyncHandler(async (req, res) => {
   }
 
   // check if user is logged in (temporary approach)
-  const userId = req.query.user_id;
+  // const userId = req.query.user_id;
+  const user = req.session.user;
 
-  if (!userId) {
-    res.status(401);
-    throw new Error("User not authenticated");
+  if (!user) {
+    // res.status(401);
+    // throw new Error("User not authenticated");
+    // Save original OAuth request
+    req.session.oauthRequest = req.query;
+    const loginUrl = `/api/auth/login?${new URLSearchParams(req.query).toString()}`;
+    return res.redirect(loginUrl);
   }
 
   // generate auth code
@@ -62,7 +67,7 @@ const authorize = asyncHandler(async (req, res) => {
   await AuthCode.create({
     code: authCode,
     clientId: client_id,
-    userId,
+    userId: user.id,
     redirectUri: redirect_uri,
     codeChallenge: code_challenge,
     codeChallengeMethod: code_challenge_method,
