@@ -4,9 +4,23 @@ import Client from "../models/clientModel.js";
 import AuthCode from "../models/authCodeModel.js";
 import jwt from "jsonwebtoken";
 
+const verifier = "my_super_secret_verifier_12345";
+
+const challenge = crypto
+  .createHash("sha256")
+  .update(verifier)
+  .digest("base64url");
+
+console.log({ verifier, challenge });
 
 const authorize = asyncHandler(async (req, res) => {
-  const { client_id, redirect_uri, response_type, state } = req.query;
+  const { client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method } = req.query;
+
+  // validate PKCE Params
+  if(!code_challenge || code_challenge_method !== "S256") {  //sha256 for code challenge method
+    res.status(400);
+    throw new Error("PKCE required")
+  }
 
   // validate required params
   if (!client_id || !redirect_uri || response_type !== "code") {
@@ -44,6 +58,8 @@ const authorize = asyncHandler(async (req, res) => {
     clientId: client_id,
     userId,
     redirectUri: redirect_uri,
+    codeChallenge: code_challenge,
+    codeChallengeMethod: code_challenge_method,
     expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
   });
 
@@ -54,13 +70,18 @@ const authorize = asyncHandler(async (req, res) => {
 });
 
 const token = asyncHandler(async(req, res) => {
-  console.log("BODY:", req.body);
-  const {client_id, code, redirect_uri } = req.body;
+  const {client_id, code, redirect_uri, code_verifier } = req.body;
 
   // validate required params
   if(!client_id || !code || !redirect_uri) {
     res.status(400);
     throw new Error("Invalid request");
+  }
+
+  //validate code_verifier
+  if(!code_verifier) {
+    res.status(400);
+    throw new Error("Missing code verifier");
   }
 
   //validate client
@@ -90,6 +111,16 @@ const token = asyncHandler(async(req, res) => {
     res.status(400);
     throw new Error("Auth code expired");
   }
+
+  //Generate challenge from verifier
+  const hashed = crypto.createHash("sha256").update(code_verifier).digest("base64url");
+
+  //compare
+  if(hashed !== authCode.codeChallenge) {
+    res.status(400);
+    throw new Error("Invalid code verifier");
+  }
+
 
   //generate access token
   const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, process.env.JWT_SECRET, {expiresIn: "15m"});

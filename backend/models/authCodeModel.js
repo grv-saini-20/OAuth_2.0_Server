@@ -5,6 +5,8 @@ const authCodeSchema = new mongoose.Schema({
     clientId: String,
     userId: String,
     redirectUri: String,
+    codeChallenge: String,  //for PKCE proof key code exchange
+    codeChallengeMethod: String, //for PKCE proof key code exchange
     expiresAt: Date,
 }, {timestamps: true});
 
