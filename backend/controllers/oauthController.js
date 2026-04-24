@@ -28,6 +28,12 @@ const authorize = asyncHandler(async (req, res) => {
     throw new Error("Invalid request");
   }
 
+  //validate state
+  if(!state) {
+    res.status(400);
+    throw new Error("Missing state");
+  }
+
   // validate client
   const client = await Client.findOne({ clientId: client_id });
 
