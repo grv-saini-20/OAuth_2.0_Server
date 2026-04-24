@@ -14,7 +14,7 @@ const challenge = crypto
 console.log({ verifier, challenge });
 
 const authorize = asyncHandler(async (req, res) => {
-  const { client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method } = req.query;
+  const { client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, nonce } = req.query;
 
   // validate PKCE Params
   if(!code_challenge || code_challenge_method !== "S256") {  //sha256 for code challenge method
@@ -31,7 +31,13 @@ const authorize = asyncHandler(async (req, res) => {
   //validate state
   if(!state) {
     res.status(400);
-    throw new Error("Missing state");
+    throw new Error("Missing state"); //state helps to prevent CSRF attacks 
+  }
+
+  // validate nonce
+  if (!nonce) {
+    res.status(400);
+    throw new Error("Missing nonce");
   }
 
   // validate client
@@ -57,9 +63,20 @@ const authorize = asyncHandler(async (req, res) => {
     // throw new Error("User not authenticated");
     // Save original OAuth request
     req.session.oauthRequest = req.query;
+    req.session.oauthState = state; // Save state to verify later
     const loginUrl = `/api/auth/login?${new URLSearchParams(req.query).toString()}`;
     return res.redirect(loginUrl);
   }
+
+
+  // Check if state matches
+  if (req.session.oauthState !== state) {
+  res.status(400);
+  throw new Error("Invalid state (CSRF detected)");
+  }
+
+  //cleanup state
+  delete req.session.oauthState;
 
   // generate auth code
   const authCode = crypto.randomBytes(32).toString("hex");
@@ -71,6 +88,7 @@ const authorize = asyncHandler(async (req, res) => {
     redirectUri: redirect_uri,
     codeChallenge: code_challenge,
     codeChallengeMethod: code_challenge_method,
+    nonce,
     expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
   });
 
@@ -136,11 +154,14 @@ const token = asyncHandler(async(req, res) => {
   //generate access token
   const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, process.env.JWT_SECRET, {expiresIn: "15m"});
 
+  //generate ID token
+  const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, process.env.JWT_SECRET, {expiresIn: "15m"});
+
   //delete auth code
   await AuthCode.deleteOne({code});
 
   //send response
-  res.json({access_Token: accessToken, token_type: "Bearer", expires_in: 900})
+  res.json({access_Token: accessToken,id_token: idToken, token_type: "Bearer", expires_in: 900})
 })
 
 export {authorize, token};
