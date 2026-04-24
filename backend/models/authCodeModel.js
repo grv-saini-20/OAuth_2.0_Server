@@ -7,6 +7,7 @@ const authCodeSchema = new mongoose.Schema({
     redirectUri: String,
     codeChallenge: String,  //for PKCE proof key code exchange
     codeChallengeMethod: String, //for PKCE proof key code exchange
+    nonce: String, //for OpenID Connect
     expiresAt: Date,
 }, {timestamps: true});
 
