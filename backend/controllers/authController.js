@@ -58,12 +58,24 @@ const loginUser = asyncHandler(async(req, res) => {
         throw new Error("Invalid email or password");
     }
 
+    
     //Temp we will replace it with OAuth tokens
-    const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "30d"});
-
+    // const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "30d"});
+    
+    //store user in session
+    req.session.user = {
+        id: user._id,
+        email: user.email
+    };
+    
+    if(req.session.oauthRequest) {
+        const params = new URLSearchParams(req.session.oauthRequest).toString();
+        delete req.session.oauthRequest;
+        return res.redirect(`/api/oauth/authorize?${params}`);
+    }
+    
     res.status(200).json({
         message: "User logged in successfully",
-        token
     })
 })
 
