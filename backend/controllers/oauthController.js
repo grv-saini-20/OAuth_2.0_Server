@@ -3,6 +3,8 @@ import crypto from "crypto";
 import Client from "../models/clientModel.js";
 import AuthCode from "../models/authCodeModel.js";
 import jwt from "jsonwebtoken";
+import { privateKey, publicKey } from "../config/keys.js";
+import { exportJWK } from "jose";
 
 const verifier = "my_super_secret_verifier_12345";
 
@@ -152,10 +154,14 @@ const token = asyncHandler(async(req, res) => {
 
 
   //generate access token
-  const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, process.env.JWT_SECRET, {expiresIn: "15m"});
+  // const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, process.env.JWT_SECRET, {expiresIn: "15m"});
+    const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, privateKey, {alogrithm: "RSA256", expiresIn: "15m", keyid: "my_key_id"});
+
 
   //generate ID token
-  const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, process.env.JWT_SECRET, {expiresIn: "15m"});
+  // const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, process.env.JWT_SECRET, {expiresIn: "15m"});
+    const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, privateKey, {alogrithm: "RSA256", expiresIn: "15m", keyid: "my_key_id"});
+
 
   //delete auth code
   await AuthCode.deleteOne({code});
@@ -174,4 +180,14 @@ const userInfo = asyncHandler(async(req, res) => {
   })
 })
 
-export {authorize, token, userInfo};
+const jwks = asyncHandler(async(req, res) => {
+  const key = await exportJWK(publicKey);
+
+  key.kid = "my_key_id";
+  key.alg = "RS256";
+  key.use  = "sig";
+
+  res.json({ keys: [key] });
+})
+
+export {authorize, token, userInfo, jwks};
