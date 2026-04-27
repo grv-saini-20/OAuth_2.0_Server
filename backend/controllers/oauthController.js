@@ -5,6 +5,7 @@ import AuthCode from "../models/authCodeModel.js";
 import jwt from "jsonwebtoken";
 import { privateKey, publicKey } from "../config/keys.js";
 import { exportJWK } from "jose";
+import RefreshToken from "../models/refreshTokenModel.js";
 
 const verifier = "my_super_secret_verifier_12345";
 
@@ -13,7 +14,6 @@ const challenge = crypto
   .update(verifier)
   .digest("base64url");
 
-console.log({ verifier, challenge });
 
 const authorize = asyncHandler(async (req, res) => {
   const { client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, nonce } = req.query;
@@ -162,12 +162,21 @@ const token = asyncHandler(async(req, res) => {
   // const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, process.env.JWT_SECRET, {expiresIn: "15m"});
     const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, privateKey, {alogrithm: "RSA256", expiresIn: "15m", keyid: "my_key_id"});
 
+  //generate refresh token
+  const refreshToken = crypto.randomBytes(40).toString("hex");
+
+  await RefreshToken.create({
+    token: refreshToken,
+    userId: authCode.userId,
+    clientId: client_id,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+  });
 
   //delete auth code
   await AuthCode.deleteOne({code});
 
   //send response
-  res.json({access_Token: accessToken,id_token: idToken, token_type: "Bearer", expires_in: 900})
+  res.json({access_Token: accessToken,id_token: idToken, refresh_Token: refreshToken, token_type: "Bearer", expires_in: 900})
 })
 
 const userInfo = asyncHandler(async(req, res) => {
@@ -190,4 +199,52 @@ const jwks = asyncHandler(async(req, res) => {
   res.json({ keys: [key] });
 })
 
-export {authorize, token, userInfo, jwks};
+const refresh = asyncHandler(async(req, res) => {
+  const {refresh_token, client_id} = req.body;
+
+  //validate params
+  if(!refresh_token || !client_id) {
+    res.status(400);
+    throw new Error("Invalid request");
+  }
+
+  const stored = await RefreshToken.findOne({token: refresh_token, clientId: client_id});
+
+  if (!stored) {
+  res.status(401);
+  throw new Error("Invalid refresh token");
+  }
+
+  if (stored.expiresAt < new Date()) {
+  await RefreshToken.deleteOne({ token: refresh_token });
+  res.status(401);
+  throw new Error("Refresh token expired");
+  }
+
+  // rotation
+  await RefreshToken.deleteOne({ token: refresh_token });
+
+  const newRefreshToken = crypto.randomBytes(40).toString("hex");
+
+  await RefreshToken.create({
+  token: newRefreshToken,
+  userId: stored.userId,
+  clientId: client_id,
+  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
+
+  const accessToken = jwt.sign(
+  { sub: stored.userId, client_id },
+  privateKey,
+  { algorithm: "RS256", expiresIn: "15m", keyid: "my-key-id" }
+  );
+
+  res.json({
+  access_token: accessToken,
+  refresh_token: newRefreshToken,
+  token_type: "Bearer",
+  expires_in: 900,
+  });
+})
+
+export {authorize, token, userInfo, jwks, refresh};
