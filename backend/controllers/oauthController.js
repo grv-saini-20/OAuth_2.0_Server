@@ -164,4 +164,14 @@ const token = asyncHandler(async(req, res) => {
   res.json({access_Token: accessToken,id_token: idToken, token_type: "Bearer", expires_in: 900})
 })
 
-export {authorize, token};
+const userInfo = asyncHandler(async(req, res) => {
+  const user = req.user; // set by auth middleware
+
+  res.json({
+    userId: user.id,
+    email: user.email,
+    name: user.name || "No name"
+  })
+})
+
+export {authorize, token, userInfo};
