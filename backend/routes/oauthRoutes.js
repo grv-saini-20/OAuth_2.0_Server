@@ -1,5 +1,5 @@
 import express from "express";
-import {authorize, token, userInfo, jwks, refersh} from "../controllers/oauthController.js";
+import {authorize, token, userInfo, jwks, refresh} from "../controllers/oauthController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
