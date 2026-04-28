@@ -2,44 +2,68 @@ import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useExchangeCodeMutation } from "./../../slices/oauthSlice";
 import { setToken } from "./../../slices/authSlice";
+import { useNavigate } from "react-router-dom";
 
 export default function Callback() {
-const dispatch = useDispatch();
-const [exchangeCode] = useExchangeCodeMutation();
+  const dispatch = useDispatch();
+  const [exchangeCode] = useExchangeCodeMutation();
+  const navigate = useNavigate();
 
-useEffect(() => {
-const run = async () => {
-const url = new URL(window.location.href);
-const code = url.searchParams.get("code");
-const state = url.searchParams.get("state");
-const storedState = localStorage.getItem("oauth_state");
+  useEffect(() => {
+    const run = async () => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state");
+      const storedState = localStorage.getItem("oauth_state");
 
-  if (state !== storedState) {
-    alert("Invalid state");
-    return;
-  }
+      if (!code) {
+        alert("Missing authorization code");
+        return;
+      }
 
-  const verifier = localStorage.getItem("pkce_verifier");
+      if (state !== storedState) {
+        alert("Invalid state");
+        return;
+      }
 
-  const res = await exchangeCode({
-    client_id: "abc123",
-    code,
-    redirect_uri: "http://localhost:5173/callback",
-    code_verifier: verifier,
-  }).unwrap();
+      const verifier = localStorage.getItem("pkce_verifier");
 
-  dispatch(setToken(res));
+      if (!verifier) {
+        alert("Missing code verifier");
+        return;
+      }
 
-  window.location.href = "/";
-};
+      try {
+        const res = await exchangeCode({
+          client_id: "abc123",
+          code,
+          redirect_uri: "http://localhost:5173/callback",
+          code_verifier: verifier,
+        }).unwrap();
 
-run();
+        console.log("Token response:", res); // ← debug: verify keys
 
-}, []);
+        // Save tokens
+        dispatch(setToken(res));
+        localStorage.setItem("refresh_token", res.refresh_token); // ← save refresh token
 
-return (
-    <div className="flex items-center justify-center h-screen"> 
-    <p className="text-muted-foreground">Signing you in...</p> 
+        // Cleanup PKCE
+        localStorage.removeItem("pkce_verifier");
+        localStorage.removeItem("oauth_state");
+
+        navigate("/home");
+      } catch (err) {
+        console.error("Token exchange failed:", err);
+        alert(err?.data?.message || "Login failed");
+      }
+    };
+
+    run();
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <p className="text-muted-foreground">Signing you in...</p>
     </div>
-    );
+  );
 }

@@ -15,7 +15,7 @@ import HomePage from './pages/HomePage'
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<App />} >,
-    <Route index  element={<LoginPage />} />
+    <Route path="/login" element={<LoginPage />} />
     <Route path="/home" element={<HomePage />} />
     <Route path="/callback" element={<Callback />} />
     </Route>

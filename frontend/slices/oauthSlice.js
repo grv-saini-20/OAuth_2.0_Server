@@ -2,7 +2,7 @@ import { apiSlice } from "./apiSlice";
 
 const oauthApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        exchangeCodes: builder.mutation({
+        exchangeCode: builder.mutation({ 
             query: (data) => ({
                 url: "/oauth/token",
                 method: "POST",
@@ -11,13 +11,13 @@ const oauthApiSlice = apiSlice.injectEndpoints({
         }),
         getUserInfo: builder.query({
             query: () => ({
-                url: "/oauth/userInfo",
+                url: "/oauth/userinfo",
                 providesTags: ["User"]
             })
         }),
         refreshToken: builder.mutation({
             query: (data) => ({
-                url: "/oauth/token",
+                url: "/oauth/refresh",
                 method: "POST",
                 body: data
             })
@@ -26,7 +26,7 @@ const oauthApiSlice = apiSlice.injectEndpoints({
 })
 
 export const {
-useExchangeCodeMutation,
-useGetUserInfoQuery,
-useRefreshTokenMutation,
+    useExchangeCodeMutation,
+    useGetUserInfoQuery,
+    useRefreshTokenMutation,
 } = oauthApiSlice;

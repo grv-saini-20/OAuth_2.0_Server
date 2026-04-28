@@ -172,12 +172,12 @@ const token = asyncHandler(async(req, res) => {
 
   //generate access token
   // const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, process.env.JWT_SECRET, {expiresIn: "15m"});
-    const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, privateKey, {alogrithm: "RS256", expiresIn: "15m", keyid: "my_key_id"});
+    const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, privateKey, {algorithm: "RS256", expiresIn: "15m", keyid: "my_key_id"});
 
 
   //generate ID token
   // const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, process.env.JWT_SECRET, {expiresIn: "15m"});
-    const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, privateKey, {alogrithm: "RS256", expiresIn: "15m", keyid: "my_key_id"});
+    const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, privateKey, {algorithm: "RS256", expiresIn: "15m", keyid: "my_key_id"});
 
   //generate refresh token
   const refreshToken = crypto.randomBytes(40).toString("hex");
@@ -193,7 +193,7 @@ const token = asyncHandler(async(req, res) => {
   await AuthCode.deleteOne({code});
 
   //send response
-  res.json({access_Token: accessToken,id_token: idToken, refresh_Token: refreshToken, token_type: "Bearer", expires_in: 900})
+  res.json({access_token: accessToken,id_token: idToken, refresh_token: refreshToken, token_type: "Bearer", expires_in: 900})
 })
 
 const userInfo = asyncHandler(async(req, res) => {
@@ -253,7 +253,7 @@ const refresh = asyncHandler(async(req, res) => {
   const accessToken = jwt.sign(
   { userId: stored.userId, clientId: client_id },
   privateKey,
-  { algorithm: "RS256", expiresIn: "15m", keyid: "my-key-id" }
+  { algorithm: "RS256", expiresIn: "15m", keyid: "my_key_id" }
   );
 
   res.json({

@@ -16,7 +16,7 @@ localStorage.setItem("oauth_state", state);
 
 const params = new URLSearchParams({
   client_id: "abc123",
-  redirect_uri: "http://localhost:3000/callback",
+  redirect_uri: "http://localhost:5173/callback",
   response_type: "code",
   scope: "openid profile email",
   state,
