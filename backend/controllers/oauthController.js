@@ -234,7 +234,7 @@ const refresh = asyncHandler(async(req, res) => {
   });
 
   const accessToken = jwt.sign(
-  { sub: stored.userId, client_id },
+  { userId: stored.userId, clientId: client_id },
   privateKey,
   { algorithm: "RS256", expiresIn: "15m", keyid: "my-key-id" }
   );
