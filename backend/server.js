@@ -7,6 +7,7 @@ import oauthRoutes from "./routes/oauthRoutes.js";
 import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 
 dotenv.config();
 connectDB();
@@ -17,21 +18,30 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://localhost:5174"],
     credentials: true,
   })
 );
 app.use(cookieParser());
-app.use(session({
+app.use(
+  session({
     secret: process.env.SESSION_SECRET,
-    resave: false, //don't save session if unmodified,
-    saveUninitialized: false, //don't create session until something stored
+    resave: false,
+    saveUninitialized: false,
+
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URL,
+      collectionName: "sessions",
+    }),
+
     cookie: {
-        httpOnly: true,
-        secure: false, //true in production https
-        maxAge: 1000 * 60 * 60, //1 hour
-    }
-}))
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60,
+    },
+  })
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/oauth", oauthRoutes);

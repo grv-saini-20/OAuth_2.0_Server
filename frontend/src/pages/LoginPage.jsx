@@ -25,8 +25,7 @@ const params = new URLSearchParams({
   code_challenge_method: "S256",
 });
 
-window.location.href = `http://127.0.0.1:5000/api/oauth/authorize?${params}`;
-
+window.location.href = `http://localhost:5000/api/oauth/authorize?${params}`;
 };
 
 return ( 

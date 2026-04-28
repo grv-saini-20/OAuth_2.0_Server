@@ -7,16 +7,26 @@ import { privateKey, publicKey } from "../config/keys.js";
 import { exportJWK } from "jose";
 import RefreshToken from "../models/refreshTokenModel.js";
 
-const verifier = "my_super_secret_verifier_12345";
-
-const challenge = crypto
-  .createHash("sha256")
-  .update(verifier)
-  .digest("base64url");
-
 
 const authorize = asyncHandler(async (req, res) => {
-  const { client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method, nonce } = req.query;
+  const query = Object.keys(req.query).length
+  ? req.query
+  : req.session.oauthRequest;
+
+  if (!query) {
+  res.status(400);
+  throw new Error("Missing OAuth request");
+  }
+
+  const {
+  client_id,
+  redirect_uri,
+  response_type,
+  state,
+  code_challenge,
+  code_challenge_method,
+  nonce,
+  } = query;
 
   // validate PKCE Params
   if(!code_challenge || code_challenge_method !== "S256") {  //sha256 for code challenge method
@@ -60,14 +70,19 @@ const authorize = asyncHandler(async (req, res) => {
   // const userId = req.query.user_id;
   const user = req.session.user;
 
+
   if (!user) {
     // res.status(401);
     // throw new Error("User not authenticated");
     // Save original OAuth request
+    if (!req.session.oauthRequest) {
     req.session.oauthRequest = req.query;
-    req.session.oauthState = state; // Save state to verify later
-    const loginUrl = `/api/auth/login?${new URLSearchParams(req.query).toString()}`;
-    return res.redirect(loginUrl);
+    req.session.oauthState = state;
+    } // Save state to verify later
+    const loginUrl = `http://localhost:5174/login?${new URLSearchParams(req.query).toString()}`;
+    return req.session.save(() => {
+      return res.redirect(loginUrl);
+    });
   }
 
 
@@ -79,6 +94,7 @@ const authorize = asyncHandler(async (req, res) => {
 
   //cleanup state
   delete req.session.oauthState;
+  delete req.session.oauthRequest;
 
   // generate auth code
   const authCode = crypto.randomBytes(32).toString("hex");
@@ -155,12 +171,12 @@ const token = asyncHandler(async(req, res) => {
 
   //generate access token
   // const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, process.env.JWT_SECRET, {expiresIn: "15m"});
-    const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, privateKey, {alogrithm: "RSA256", expiresIn: "15m", keyid: "my_key_id"});
+    const accessToken = jwt.sign({userId: authCode.userId, clientId: client_id}, privateKey, {alogrithm: "RS256", expiresIn: "15m", keyid: "my_key_id"});
 
 
   //generate ID token
   // const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, process.env.JWT_SECRET, {expiresIn: "15m"});
-    const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, privateKey, {alogrithm: "RSA256", expiresIn: "15m", keyid: "my_key_id"});
+    const idToken = jwt.sign({userId: authCode.userId, clientId: client_id,iss:"http://localhost:5000", nonce: authCode.nonce}, privateKey, {alogrithm: "RS256", expiresIn: "15m", keyid: "my_key_id"});
 
   //generate refresh token
   const refreshToken = crypto.randomBytes(40).toString("hex");

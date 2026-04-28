@@ -68,14 +68,14 @@ const loginUser = asyncHandler(async(req, res) => {
         email: user.email
     };
     
-    if(req.session.oauthRequest) {
-        const params = new URLSearchParams(req.session.oauthRequest).toString();
-        delete req.session.oauthRequest;
-        return res.redirect(`/api/oauth/authorize?${params}`);
-    }
-    
-    res.status(200).json({
-        message: "User logged in successfully",
+    //save session before redirect
+    return req.session.save(() => {
+        if(req.session.oauthRequest) {
+            return res.redirect("http://localhost:5000/api/oauth/authorize");
+        }
+        res.status(200).json({
+            message: "User logged in successfully",
+        })
     })
 })
 
