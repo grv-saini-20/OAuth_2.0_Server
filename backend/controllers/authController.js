@@ -43,7 +43,7 @@ const registerUser = asyncHandler(async(req, res) => {
  */
 
 const loginUser = asyncHandler(async(req, res) => {
-    const {email, password} = req.body;
+    const {email, password, oauthParams} = req.body;
 
     // check if user already exists 
     const user = await User.findOne({email});
@@ -68,15 +68,18 @@ const loginUser = asyncHandler(async(req, res) => {
         email: user.email
     };
     
-    //save session before redirect
+    // Use session oauthRequest, fall back to params sent from login form
+    const oauthRequest = req.session.oauthRequest || oauthParams;
+
     return req.session.save(() => {
-        if(req.session.oauthRequest) {
-            return res.redirect("http://localhost:5000/api/oauth/authorize");
+        if (oauthRequest && Object.keys(oauthRequest).length) {
+        const params = new URLSearchParams(oauthRequest).toString();
+        return res.json({
+            redirectUrl: `http://localhost:5000/api/oauth/authorize?${params}`
+        });
         }
-        res.status(200).json({
-            message: "User logged in successfully",
-        })
-    })
+        res.status(200).json({ message: "User logged in successfully" });
+    });
 })
 
 

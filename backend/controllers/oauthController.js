@@ -87,9 +87,10 @@ const authorize = asyncHandler(async (req, res) => {
 
 
   // Check if state matches
-  if (req.session.oauthState !== state) {
-  res.status(400);
-  throw new Error("Invalid state (CSRF detected)");
+  const savedState = req.session.oauthState || state;
+  if (savedState !== state) {
+    res.status(400);
+    throw new Error("Invalid state (CSRF detected)");
   }
 
   //cleanup state

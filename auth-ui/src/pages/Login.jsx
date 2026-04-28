@@ -8,46 +8,55 @@ const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 
 const handleLogin = async () => {
-const params = new URLSearchParams(window.location.search);
+  const searchParams = new URLSearchParams(window.location.search);
+  const oauthParams = Object.fromEntries(searchParams.entries());
+  console.log(window.location.search)
 
-const res = await fetch("http://localhost:5000/api/auth/login", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  credentials: "include", 
-  body: JSON.stringify({
-    email,
-    password,
-  }),
-});
+  const res = await fetch("http://localhost:5000/api/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ email, password, oauthParams }),
+  });
 
-if (res.redirected) {
-  window.location.href = res.url;
-}
+  const data = await res.json();
 
-if (!res.ok) {
-  alert("Login failed");
-  return;
-}
+  if (!res.ok) {
+    alert("Login failed");
+    return;
+  }
 
-}
+  if (data.redirectUrl) {
+    window.location.href = data.redirectUrl;
+  }
+};
 
 return ( 
     <div className="flex items-center justify-center h-screen"> 
-    <Card className="w-[400px]">
-        <form
-        action="http://localhost:5000/api/auth/login"
-        method="POST"
-        >
-        <Input name="email" placeholder="Email" />
+        <Card className="w-[400px]"> 
+            <CardHeader> 
+                <CardTitle>Login</CardTitle> 
+            </CardHeader>
+        <CardContent className="space-y-4">
+        <Input
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <Input name="password" type="password" placeholder="Password" />
+        <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+        />
 
-        <Button type="submit" className="w-full">
+        <Button className="w-full" onClick={handleLogin}>
             Login
         </Button>
-        </form>
+        </CardContent>
     </Card>
     </div>
     );
