@@ -41,11 +41,9 @@ export default function Callback() {
           code_verifier: verifier,
         }).unwrap();
 
-        console.log("Token response:", res); // ← debug: verify keys
-
         // Save tokens
         dispatch(setToken(res));
-        localStorage.setItem("refresh_token", res.refresh_token); // ← save refresh token
+        localStorage.setItem("refresh_token", res.refresh_token);
 
         // Cleanup PKCE
         localStorage.removeItem("pkce_verifier");
