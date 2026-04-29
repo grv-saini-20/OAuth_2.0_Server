@@ -8,7 +8,8 @@ const clientSchema = new mongoose.Schema({
     },
     clientSecret: String, //For confidential clients (later),
     redirectUris: [String], //Where to redirect after authorization
-    name: String
+    name: String,
+    grants: { type: [String], default: ["authorization_code"] }
 })
 
 const Client = mongoose.model("Client", clientSchema);

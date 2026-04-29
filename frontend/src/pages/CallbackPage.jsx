@@ -39,11 +39,14 @@ export default function Callback() {
           code,
           redirect_uri: "http://localhost:5173/callback",
           code_verifier: verifier,
+          grant_type: "authorization_code",
         }).unwrap();
 
         // Save tokens
         dispatch(setToken(res));
         localStorage.setItem("refresh_token", res.refresh_token);
+        localStorage.setItem("access_token", res.access_token);
+        localStorage.setItem("id_token", res.id_token);
 
         // Cleanup PKCE
         localStorage.removeItem("pkce_verifier");

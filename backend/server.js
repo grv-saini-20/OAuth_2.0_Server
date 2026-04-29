@@ -23,6 +23,7 @@ app.use(
   })
 );
 app.use(cookieParser());
+app.set("trust proxy", 1);
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -39,6 +40,7 @@ app.use(
       secure: false,
       sameSite: "lax",
       maxAge: 1000 * 60 * 60,
+      domain: "localhost",
     },
   })
 );

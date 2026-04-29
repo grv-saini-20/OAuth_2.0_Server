@@ -8,17 +8,13 @@ const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 
 const handleLogin = async () => {
-  const searchParams = new URLSearchParams(window.location.search);
-  const oauthParams = Object.fromEntries(searchParams.entries());
-  console.log(window.location.search)
-
   const res = await fetch("http://localhost:5000/api/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify({ email, password, oauthParams }),
+    body: JSON.stringify({ email, password }),
   });
 
   const data = await res.json();

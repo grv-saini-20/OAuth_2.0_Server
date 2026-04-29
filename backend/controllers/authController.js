@@ -43,44 +43,29 @@ const registerUser = asyncHandler(async(req, res) => {
  */
 
 const loginUser = asyncHandler(async(req, res) => {
-    const {email, password, oauthParams} = req.body;
+  const { email, password } = req.body; // ← remove oauthParams
 
-    // check if user already exists 
-    const user = await User.findOne({email});
-    if(!user) {
-        res.status(401);
-        throw new Error("Invalid email or password");
+  const user = await User.findOne({ email });
+  if (!user) { res.status(401); throw new Error("Invalid email or password"); }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) { res.status(401); throw new Error("Invalid email or password"); }
+
+  req.session.user = {
+    id: user._id.toString(),
+    email: user.email
+  };
+
+  return req.session.save(() => {
+    if (req.session.oauthRequest && Object.keys(req.session.oauthRequest).length) {
+      const params = new URLSearchParams(req.session.oauthRequest).toString();
+      return res.json({
+        redirectUrl: `http://localhost:5000/api/oauth/authorize?${params}`
+      });
     }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if(!isMatch) {
-        res.status(401);
-        throw new Error("Invalid email or password");
-    }
-
-    
-    //Temp we will replace it with OAuth tokens
-    // const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: "30d"});
-    
-    //store user in session
-    req.session.user = {
-        id: user._id,
-        email: user.email
-    };
-    
-    // Use session oauthRequest, fall back to params sent from login form
-    const oauthRequest = req.session.oauthRequest || oauthParams;
-
-    return req.session.save(() => {
-        if (oauthRequest && Object.keys(oauthRequest).length) {
-        const params = new URLSearchParams(oauthRequest).toString();
-        return res.json({
-            redirectUrl: `http://localhost:5000/api/oauth/authorize?${params}`
-        });
-        }
-        res.status(200).json({ message: "User logged in successfully" });
-    });
-})
+    res.status(200).json({ message: "User logged in successfully" });
+  });
+});
 
 
 export { registerUser, loginUser };
