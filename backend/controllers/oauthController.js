@@ -26,6 +26,7 @@ const authorize = asyncHandler(async (req, res) => {
     code_challenge,
     code_challenge_method,
     nonce,
+    scope
   } = query;
 
   // validate PKCE Params
@@ -50,6 +51,12 @@ const authorize = asyncHandler(async (req, res) => {
   if (!nonce) {
     res.status(400);
     throw new Error("Missing nonce");
+  }
+
+  //validate scope
+  if (!scope || !scope.includes("openid")) {
+  res.status(400);
+  throw new Error("Invalid scope: 'openid' required");
   }
 
   // validate client
@@ -97,6 +104,7 @@ const authorize = asyncHandler(async (req, res) => {
     codeChallenge: code_challenge,
     codeChallengeMethod: code_challenge_method,
     nonce,
+    scope,
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   });
 
@@ -160,7 +168,7 @@ const token = asyncHandler(async (req, res) => {
   await AuthCode.deleteOne({ code });
 
   const accessToken = jwt.sign(
-    { userId: authCode.userId.toString(), clientId: client_id },
+    { userId: authCode.userId.toString(), clientId: client_id, scope: authCode.scope },
     privateKey,
     { algorithm: "RS256", expiresIn: "15m", keyid: "my_key_id" }
   );
@@ -168,7 +176,6 @@ const token = asyncHandler(async (req, res) => {
   const idToken = jwt.sign(
     {
       sub: authCode.userId.toString(),
-      clientId: client_id,
       iss: "http://localhost:5000",
       aud: client_id,              
       nonce: authCode.nonce,
@@ -183,6 +190,7 @@ const token = asyncHandler(async (req, res) => {
     token: refreshToken,
     userId: authCode.userId,
     clientId: client_id,
+    scope: authCode.scope,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   });
 
@@ -191,19 +199,23 @@ const token = asyncHandler(async (req, res) => {
     id_token: idToken,
     refresh_token: refreshToken,
     token_type: "Bearer",
+    scope: authCode.scope,
     expires_in: 900,
   });
 });
 
 
 const userInfo = asyncHandler(async (req, res) => {
-  const user = req.user; // set by auth middleware
+  const user = req.user;
+  const decoded = jwt.decode(req.headers.authorization.split(" ")[1]);
+  
+  const scope = decoded.scope || "";
+  const response = { sub: user.id };
 
-  res.json({
-    sub: user.id,
-    email: user.email,
-    name: user.name || "No name",
-  });
+  if (scope.includes("email")) response.email = user.email;
+  if (scope.includes("profile")) response.name = user.name || "No name";
+
+  res.json(response);
 });
 
 
@@ -247,11 +259,12 @@ const refresh = asyncHandler(async (req, res) => {
     token: newRefreshToken,
     userId: stored.userId,
     clientId: client_id,
+    scope: stored.scope,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   const accessToken = jwt.sign(
-    { userId: stored.userId.toString(), clientId: client_id },
+    { userId: stored.userId.toString(), clientId: client_id, scope: stored.scope },
     privateKey,
     { algorithm: "RS256", expiresIn: "15m", keyid: "my_key_id" }
   );
@@ -260,6 +273,7 @@ const refresh = asyncHandler(async (req, res) => {
     access_token: accessToken,
     refresh_token: newRefreshToken,
     token_type: "Bearer",
+    scope: stored.scope,
     expires_in: 900,
   });
 });

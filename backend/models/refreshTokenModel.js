@@ -4,6 +4,7 @@ const refreshTokenSchema = new mongoose.Schema({
 token: String,
 userId: String,
 clientId: String,
+scope: String,
 expiresAt: Date,
 });
 
