@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { useExchangeCodeMutation } from "./../../slices/oauthSlice";
 import { setToken } from "./../../slices/authSlice";
@@ -8,30 +8,23 @@ export default function Callback() {
   const dispatch = useDispatch();
   const [exchangeCode] = useExchangeCodeMutation();
   const navigate = useNavigate();
+  const hasRun = useRef(false);
 
   useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     const run = async () => {
       const url = new URL(window.location.href);
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state");
       const storedState = localStorage.getItem("oauth_state");
 
-      if (!code) {
-        alert("Missing authorization code");
-        return;
-      }
-
-      if (state !== storedState) {
-        alert("Invalid state");
-        return;
-      }
+      if (!code) { alert("Missing authorization code"); return; }
+      if (state !== storedState) { alert("Invalid state"); return; }
 
       const verifier = localStorage.getItem("pkce_verifier");
-
-      if (!verifier) {
-        alert("Missing code verifier");
-        return;
-      }
+      if (!verifier) { alert("Missing code verifier"); return; }
 
       try {
         const res = await exchangeCode({
@@ -42,10 +35,11 @@ export default function Callback() {
           grant_type: "authorization_code",
         }).unwrap();
 
-        // Save tokens
         dispatch(setToken(res));
-        localStorage.setItem("refresh_token", res.refresh_token);
+
+        // Persist tokens to localStorage so Redux can rehydrate
         localStorage.setItem("access_token", res.access_token);
+        localStorage.setItem("refresh_token", res.refresh_token);
         localStorage.setItem("id_token", res.id_token);
 
         // Cleanup PKCE

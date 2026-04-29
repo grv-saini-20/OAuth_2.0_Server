@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
     user: null,
-    accessToken: null
+    accessToken: localStorage.getItem("access_token") || null,
 }
 
 const authSlice = createSlice({
@@ -11,6 +11,7 @@ const authSlice = createSlice({
     reducers: {
         setToken: (state, action) => {
             state.accessToken = action.payload.access_token;
+            localStorage.setItem("access_token", action.payload.access_token);
         },
         setUser: (state, action) => {
             state.user = action.payload;
@@ -18,6 +19,9 @@ const authSlice = createSlice({
         logout: (state) => {
             state.user = null,
             state.accessToken = null
+            localStorage.removeItem("access_token"); // ← cleanup
+            localStorage.removeItem("refresh_token");
+            localStorage.removeItem("id_token");
         }
     }
 })
